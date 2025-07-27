@@ -510,10 +510,14 @@ def admin_panel():
         # Get recent reviews
         recent_reviews = Review.query.order_by(Review.created_at.desc()).limit(10).all()
         
+        # Get recent ratings/feedback
+        recent_ratings = Rating.query.order_by(Rating.created_at.desc()).limit(10).all()
+        
         return render_template('admin/panel.html',
                              users=all_users,
                              recent_uploads=recent_uploads,
                              recent_reviews=recent_reviews,
+                             recent_ratings=recent_ratings,
                              demo_user=user,
                              current_user=user)
                              
