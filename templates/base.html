@@ -154,5 +154,72 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
     {% block scripts %}{% endblock %}
+    <h2>Upload Content, Review & Feedback</h2>
+
+<form id="upload-form">
+  <label>Upload File:</label>
+  <input type="file" id="fileInput" required /><br><br>
+
+  <label>Your Review:</label><br>
+  <textarea id="reviewText" rows="3" cols="50" placeholder="Write your review..."></textarea><br><br>
+
+  <label>Your Feedback:</label><br>
+  <textarea id="feedbackText" rows="3" cols="50" placeholder="Write your feedback..."></textarea><br><br>
+
+  <button type="submit">Submit</button>
+</form>
+
+<div id="status"></div>
+
+<script>
+  const cloudName = "dtwnmdpsk";
+  const uploadPreset = "USERDATA";
+
+  document.getElementById("upload-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const file = document.getElementById("fileInput").files[0];
+    const review = document.getElementById("reviewText").value.trim();
+    const feedback = document.getElementById("feedbackText").value.trim();
+
+    const statusDiv = document.getElementById("status");
+    statusDiv.innerHTML = "Uploading...";
+
+    try {
+      // Upload file (image, video, etc.)
+      const fileForm = new FormData();
+      fileForm.append("file", file);
+      fileForm.append("upload_preset", uploadPreset);
+      const fileUpload = await fetch(https://api.cloudinary.com/v1_1/${cloudName}/auto/upload, {
+        method: "POST",
+        body: fileForm
+      });
+      const fileData = await fileUpload.json();
+
+      // Upload review + feedback as text file
+      const textBlob = new Blob(
+        [Review:\n${review}\n\nFeedback:\n${feedback}],
+        { type: "text/plain" }
+      );
+      const textForm = new FormData();
+      textForm.append("file", textBlob, "review_feedback.txt");
+      textForm.append("upload_preset", uploadPreset);
+      const textUpload = await fetch(https://api.cloudinary.com/v1_1/${cloudName}/raw/upload, {
+        method: "POST",
+        body: textForm
+      });
+      const textData = await textUpload.json();
+
+      statusDiv.innerHTML = `
+        <p><strong>Uploaded to Cloudinary successfully!</strong></p>
+        <p>📁 File: <a href="${fileData.secure_url}" target="_blank">View File</a></p>
+        <p>📝 Review + Feedback: <a href="${textData.secure_url}" target="_blank">View Notes</a></p>
+      `;
+    } catch (err) {
+      console.error(err);
+      statusDiv.innerHTML = "<p style='color:red'>Upload failed. Please try again.</p>";
+    }
+  });
+</script>
 </body>
 </html>
