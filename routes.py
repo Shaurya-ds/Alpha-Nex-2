@@ -12,18 +12,28 @@ from models import User, Upload, Review, Strike, WithdrawalRequest, AdminAction,
 from forms import UploadForm, ReviewForm, RatingForm
 # from openai_service import analyze_content_quality  # Not needed for simplified version
 
-# Create a single static user for all operations
-STATIC_USER_ID = 1
-
-def get_or_create_static_user():
-    """Get or create the single static user for the platform with fresh experience"""
-    user = User.query.get(STATIC_USER_ID)
+def get_or_create_user_for_session():
+    """Get or create a unique user for this session"""
+    # Get user name from session
+    user_name = session.get('user_name', 'Anonymous')
+    
+    # Create a unique username based on session name and timestamp
+    session_id = session.get('session_id')
+    if not session_id:
+        session_id = str(uuid.uuid4())[:8]
+        session['session_id'] = session_id
+    
+    username = f"user_{session_id}"
+    
+    # Try to find existing user for this session
+    user = User.query.filter_by(username=username).first()
+    
     if not user:
+        # Create new user for this session
         user = User()
-        user.id = STATIC_USER_ID
-        user.username = 'platform_user'
-        user.name = 'Platform User'
-        user.email = 'user@alphanex.com'
+        user.username = username
+        user.name = user_name
+        user.email = f"{username}@alphanex.com"
         user.password_hash = generate_password_hash('alphanex123')
         user.xp_points = 500
         user.daily_upload_count = 0
@@ -31,49 +41,82 @@ def get_or_create_static_user():
         user.daily_review_count = 0
         user.daily_upload_reset = datetime.utcnow()
         user.daily_review_reset = datetime.utcnow()
+        user.uploader_strikes = 0
+        user.reviewer_strikes = 0
+        user.is_banned = False
+        
         db.session.add(user)
-        
-        # Create test files for review
-        create_test_content()
-        
         db.session.commit()
+        
+        # Store user ID in session
+        session['user_id'] = user.id
     else:
-        # Only reset user experience on name entry, not every access
-        # This preserves XP points earned during the session
-        pass
+        # Update name if it changed
+        if user.name != user_name:
+            user.name = user_name
+            db.session.add(user)
+            db.session.commit()
+        
+        # Store user ID in session
+        session['user_id'] = user.id
     
     return user
 
-def reset_user_experience(user):
-    """Reset user's daily limits and usage for fresh experience"""
-    try:
-        # Reset usage counters (keeping for tracking but no limits)
-        user.daily_upload_count = 0
-        user.daily_upload_bytes = 0
-        user.daily_review_count = 0
+def create_demo_content_for_reviews():
+    """Create demo content from a test user for reviews"""
+    # Create a demo content user if doesn't exist
+    demo_user = User.query.filter_by(username='demo_content_creator').first()
+    if not demo_user:
+        demo_user = User()
+        demo_user.username = 'demo_content_creator'
+        demo_user.name = 'Demo Content Creator'
+        demo_user.email = 'demo@alphanex.com'
+        demo_user.password_hash = generate_password_hash('demo123')
+        demo_user.xp_points = 300
+        db.session.add(demo_user)
+        db.session.flush()
         
-        # Clear user's uploads to give fresh experience
-        user_uploads = Upload.query.filter_by(user_id=user.id).all()
-        for upload in user_uploads:
-            db.session.delete(upload)
+        # Create demo files
+        demo_files = [
+            {
+                'filename': 'demo_audio.mp3',
+                'original_filename': 'DEMO - Tech Podcast Episode',
+                'file_size': 8388608,
+                'description': 'DEMO FILE - Technology podcast about AI trends',
+                'category': 'audio'
+            },
+            {
+                'filename': 'demo_document.pdf',
+                'original_filename': 'DEMO - Research Paper',
+                'file_size': 2097152,
+                'description': 'DEMO FILE - Academic research on machine learning',
+                'category': 'document'
+            },
+            {
+                'filename': 'demo_code.py',
+                'original_filename': 'DEMO - Python Script',
+                'file_size': 524288,
+                'description': 'DEMO FILE - Data analysis script using pandas',
+                'category': 'code'
+            }
+        ]
         
-        # Clear user's reviews to reset review experience
-        user_reviews = Review.query.filter_by(reviewer_id=user.id).all()
-        for review in user_reviews:
-            db.session.delete(review)
-        
-        # Only reset XP if it's the default starting value or less
-        # This preserves earned XP points from uploads and reviews
-        if user.xp_points <= 500:
-            user.xp_points = 500
+        for demo_file in demo_files:
+            upload = Upload()
+            upload.user_id = demo_user.id
+            upload.filename = demo_file['filename']
+            upload.original_filename = demo_file['original_filename']
+            upload.file_path = f"uploads/{demo_file['filename']}"
+            upload.file_size = demo_file['file_size']
+            upload.description = demo_file['description']
+            upload.category = demo_file['category']
+            upload.status = 'pending'
+            upload.ai_consent = True
+            db.session.add(upload)
         
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error resetting user experience: {e}")
-        # Continue even if reset fails
 
-def create_test_content():
+def create_test_content_old():
     """Create sample content for review system"""
     test_files = [
         {
@@ -222,9 +265,8 @@ def name_entry():
         if name and len(name) >= 2 and len(name) <= 50 and name.replace(' ', '').isalpha():
             session['user_name'] = name
             
-            # Reset user experience for fresh start
-            user = get_or_create_static_user()
-            reset_user_experience(user)
+            # Create demo content for reviews if needed
+            create_demo_content_for_reviews()
             
             return redirect(url_for('dashboard'))
         else:
@@ -253,7 +295,7 @@ def dashboard():
         return redirect(url_for('name_entry'))
     
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         user_name = session['user_name']
         
         # Get user stats
@@ -320,7 +362,7 @@ def dashboard():
 def upload_file():
     """File upload endpoint"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         form = UploadForm()
         
         if form.validate_on_submit():
@@ -397,7 +439,7 @@ def upload_file():
 def review_content():
     """Content review page"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         
         # Get uploads that need review (not from current user and not already reviewed)
         reviewed_upload_ids = [r.upload_id for r in Review.query.filter_by(reviewer_id=user.id).all()]
@@ -427,7 +469,7 @@ def review_content():
 def review_upload(upload_id):
     """Review a specific upload"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         upload = Upload.query.get_or_404(upload_id)
         form = ReviewForm()
         
@@ -486,7 +528,7 @@ def review_upload(upload_id):
 def profile():
     """User profile page"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         
         # Get user's strikes and violation history
         strikes = Strike.query.filter_by(user_id=user.id)\
@@ -505,7 +547,7 @@ def profile():
 def admin_panel():
     """Admin panel page"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         
         # Get all users
         all_users = User.query.order_by(User.created_at.desc()).all()
@@ -535,7 +577,7 @@ def admin_panel():
 def rate_website():
     """Website rating and feedback page"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         form = RatingForm()
         
         if request.method == 'POST':
@@ -576,7 +618,7 @@ def rate_website():
 def delete_upload(upload_id):
     """Delete an upload"""
     try:
-        user = get_or_create_static_user()
+        user = get_or_create_user_for_session()
         upload = Upload.query.get_or_404(upload_id)
         
         # Check if user owns this upload
