@@ -315,13 +315,13 @@ def dashboard():
         
         # Welcome messages with motivation
         welcome_messages = [
-            f"🌟 Welcome back {user_name}! Ready to earn more XP?",
-            f"🚀 Hey {user_name}! Time to create amazing content!",
-            f"⭐ Great to see you {user_name}! Let's make today productive!",
-            f"💪 {user_name}, you're doing fantastic! Keep it up!",
-            f"🔥 Welcome {user_name}! Your contributions make a difference!",
-            f"✨ Hello {user_name}! Ready to level up today?",
-            f"🎯 {user_name}, you're on the right path to success!"
+            f"🌟 Welcome back! Ready to earn more XP?",
+            f"🚀 Hey there! Time to create amazing content!",
+            f"⭐ Great to see you! Let's make today productive!",
+            f"💪 You're doing fantastic! Keep it up!",
+            f"🔥 Welcome! Your contributions make a difference!",
+            f"✨ Hello! Ready to level up today?",
+            f"🎯 You're on the right path to success!"
         ]
         
         # Milestone celebration messages

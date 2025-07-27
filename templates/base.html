@@ -78,7 +78,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                             <span class="badge bg-dark me-2">{{ demo_user.xp_points if demo_user else 500 }} XP</span>
-                            <i class="fas fa-user-circle me-1"></i>{{ demo_user.name if demo_user else 'Demo User' }}
+                            <i class="fas fa-user-circle me-1"></i>User
                             
                             <!-- Strike warnings -->
                             {% if demo_user and (demo_user.uploader_strikes > 0 or demo_user.reviewer_strikes > 0) %}
