@@ -154,33 +154,6 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
     {% block scripts %}{% endblock %}
- <form id="myUploadForm">
-  <input type="file" id="fileInput" />
-  <input type="text" id="feedbackInput" placeholder="Your feedback..." />
-  <button type="submit">Submit</button>
-</form>
 
-<script>
-  document.getElementById("myUploadForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-
-    const file = document.getElementById("fileInput").files[0];
-    const feedback = document.getElementById("feedbackInput").value;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "alphanex_unsigned_upload"); // your preset
-    formData.append("context", "alt=" + encodeURIComponent(feedback)); // attach feedback to image metadata
-
-    const response = await fetch("https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/auto/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await response.json();
-    console.log("Uploaded to Cloudinary:", data);
-    alert("Uploaded!\nURL: " + data.secure_url);
-  });
-</script>
 </body>
 </html>
