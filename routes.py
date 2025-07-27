@@ -38,8 +38,9 @@ def get_or_create_static_user():
         
         db.session.commit()
     else:
-        # Reset user experience for fresh start every time
-        reset_user_experience(user)
+        # Only reset user experience on name entry, not every access
+        # This preserves XP points earned during the session
+        pass
     
     return user
 
@@ -61,8 +62,10 @@ def reset_user_experience(user):
         for review in user_reviews:
             db.session.delete(review)
         
-        # Reset XP to starting value for consistent experience
-        user.xp_points = 500
+        # Only reset XP if it's the default starting value or less
+        # This preserves earned XP points from uploads and reviews
+        if user.xp_points <= 500:
+            user.xp_points = 500
         
         db.session.commit()
     except Exception as e:
@@ -360,6 +363,7 @@ def upload_file():
                 user.xp_points += 20
                 
                 db.session.add(upload)
+                db.session.add(user)  # Make sure user changes are saved
                 db.session.commit()
                 
                 motivational_messages = [
@@ -446,6 +450,8 @@ def review_upload(upload_id):
             user.xp_points += 15
             
             db.session.add(review)
+            db.session.add(user)  # Make sure user changes are saved
+            db.session.commit()
             db.session.commit()
             
             motivational_messages = [
