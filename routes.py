@@ -543,35 +543,6 @@ def profile():
         app.logger.error(f"Profile error: {e}")
         return render_template('error.html', error=f"Profile error: {str(e)}")
 
-@app.route('/admin')
-def admin_panel():
-    """Admin panel page"""
-    try:
-        user = get_or_create_user_for_session()
-        
-        # Get all users
-        all_users = User.query.order_by(User.created_at.desc()).all()
-        
-        # Get recent uploads
-        recent_uploads = Upload.query.order_by(Upload.uploaded_at.desc()).limit(10).all()
-        
-        # Get recent reviews
-        recent_reviews = Review.query.order_by(Review.created_at.desc()).limit(10).all()
-        
-        # Get recent ratings/feedback
-        recent_ratings = Rating.query.order_by(Rating.created_at.desc()).limit(10).all()
-        
-        return render_template('admin/panel.html',
-                             users=all_users,
-                             recent_uploads=recent_uploads,
-                             recent_reviews=recent_reviews,
-                             recent_ratings=recent_ratings,
-                             demo_user=user,
-                             current_user=user)
-                             
-    except Exception as e:
-        app.logger.error(f"Admin error: {e}")
-        return render_template('error.html', error=f"Admin error: {str(e)}")
 
 @app.route('/rating', methods=['GET', 'POST'])
 def rate_website():
