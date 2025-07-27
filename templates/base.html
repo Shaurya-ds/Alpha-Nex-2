@@ -154,5 +154,28 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
     {% block scripts %}{% endblock %}
+    <body>
+  <h1>Upload Your File to Cloudinary</h1>
+
+  <button id="upload_widget">Upload File</button>
+
+  <!-- Cloudinary Widget Script -->
+  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+  <script>
+    const uploadWidget = cloudinary.createUploadWidget({
+      cloudName: 'dtwmmdpsk',  // your actual cloud name
+      uploadPreset: 'USER_DATA' // your unsigned upload preset
+    }, (error, result) => {
+      if (!error && result && result.event === "success") {
+        console.log('Upload successful:', result.info);
+        alert("File uploaded!\nURL: " + result.info.secure_url);
+      }
+    });
+
+    document.getElementById("upload_widget").addEventListener("click", () => {
+      uploadWidget.open();
+    });
+  </script>
+</body>
 </body>
 </html>
