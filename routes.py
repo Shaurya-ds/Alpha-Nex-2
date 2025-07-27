@@ -528,20 +528,30 @@ def rate_website():
         user = get_or_create_static_user()
         form = RatingForm()
         
-        if form.validate_on_submit():
-            # Create rating record
-            rating = Rating()
-            rating.user_id = user.id
-            rating.rating = form.rating.data
-            rating.category = form.category.data
-            rating.description = form.description.data
-            rating.contact_email = form.contact_email.data if form.contact_email.data else None
+        if request.method == 'POST':
+            # Debug form data
+            app.logger.info(f"Form data received: {request.form}")
+            app.logger.info(f"Form validation errors: {form.errors}")
             
-            db.session.add(rating)
-            db.session.commit()
-            
-            flash('Thank you for your feedback! Your rating has been submitted.', 'success')
-            return redirect(url_for('dashboard'))
+            if form.validate_on_submit():
+                # Create rating record
+                rating = Rating()
+                rating.user_id = user.id
+                rating.rating = form.rating.data
+                rating.category = form.category.data
+                rating.description = form.description.data
+                rating.contact_email = form.contact_email.data if form.contact_email.data else None
+                
+                db.session.add(rating)
+                db.session.commit()
+                
+                flash('Thank you for your feedback! Your rating has been submitted.', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                # Show validation errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        flash(f'{field}: {error}', 'error')
         
         return render_template('rating.html', 
                              form=form,

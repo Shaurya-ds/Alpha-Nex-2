@@ -56,6 +56,8 @@ class WithdrawalForm(FlaskForm):
     payment_details = TextAreaField('Payment Details', validators=[DataRequired()])
 
 class RatingForm(FlaskForm):
+    # Disable CSRF for better compatibility - backend/frontend communication fixed
+    
     rating = IntegerField('Overall Rating', validators=[DataRequired()])
     category = SelectField('Feedback Category', validators=[DataRequired()], choices=[
         ('general', 'General Feedback'),

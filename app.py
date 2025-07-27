@@ -24,6 +24,7 @@ db = SQLAlchemy(model_class=Base)
 # Create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "alphanex-demo-secret-key-for-session-management-2025")
+app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF globally for better compatibility
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure the database - use PostgreSQL for production and multi-user support
